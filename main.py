@@ -16,23 +16,20 @@ import os
 
 import random
 
-from wpdir import wiringpi
+#from wpdir import wiringpi
 
-#
-# Adafruit libraries modified by Ben Laroque for Python 3 and ADS1015
-#
-# from Adafruit import ADS1x15
-#
-# print()
-# print('Initializing ADC...')
-# print()
-#
-# #
-# # Default ADC IC is ADS1015
-# # Default address is 0x48 on the default I2C bus
-# #
-# adc = ADS1x15()
+import RPi.GPIO as GPIO
 
+#GPIO Mode (BOARD / BCM)
+GPIO.setmode(GPIO.BCM)
+
+#set GPIO Pins
+GPIO_TRIGGER = 18
+GPIO_ECHO = 24
+
+#set GPIO direction (IN / OUT)
+GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
+GPIO.setup(GPIO_ECHO, GPIO.IN)
 
 
 # Data Name Format
@@ -40,7 +37,6 @@ DATA_NAME = "data/{}".format(int(time.time()))
 
 # Boxcar averaging ON/OFF
 BOXCAR_AVG = False
-
 
 # Boxcar Averaging Algorithm
 def boxcar_avg(varset, times, b_interval, var_name = None, var_unit = None, print_results = True):
@@ -75,6 +71,27 @@ def user_input(val_name, val_range = None):
     print("{0} is set as {1}.".format(val_name, val_d))
     print()
     return val_d
+
+def timett():
+    # set Trigger to HIGH
+    GPIO.output(GPIO_TRIGGER, True)
+
+    # set Trigger after 0.01ms to LOW
+    time.sleep(0.00001)
+    GPIO.output(GPIO_TRIGGER, False)
+
+    # save StartTime
+    while GPIO.input(GPIO_ECHO) == 0:
+        StartTime = time.perf_counter()
+
+    # save time of arrival
+    while GPIO.input(GPIO_ECHO) == 1:
+        StopTime = time.perf_counter()
+
+    # time difference between start and arrival
+    TimeElapsed = StopTime - StartTime
+
+    return TimeElapsed
 
 # Saving file name
 def file_name(suffix):
@@ -131,7 +148,7 @@ K_B = 1.38064852
 N_A = 6.02214
 
 # Experiment Constants
-DISTANCE = 1
+# DISTANCE = 1
 MOLAR_MASS = 28.97 * 10 ** (-3)
 GAMMA = 1.40
 
@@ -148,12 +165,12 @@ derived_kb_arr = []
 if BOXCAR_AVG:
     box_temp_arr = []
 
-def c_from_tt(tt):
-    c_sound = DISTANCE / tt
+def c_from_tt(tt, dis):
+    c_sound = dis / tt
     return c_sound
 
-def kb_from_tt(tt, temp):
-    c_sound = c_from_tt(tt)
+def kb_from_tt(tt, temp, dis):
+    c_sound = c_from_tt(tt, dis)
     kb = (c_sound ** 2) * MOLAR_MASS / (GAMMA * N_A * temp)
     return kb
 
@@ -164,6 +181,10 @@ if BOXCAR_AVG:
 
 t0 = time.perf_counter()
 # print("\nThe {}-second temperature recording has been initiated. \n".format(TIME_ELAPSED))
+
+distance_d = user_input("distance in cm", (1,200))
+
+distance_d = distance_d / 100
 
 print()
 print("NOTE: You can exit the recodring early by pressing ctrl + C.")
@@ -186,11 +207,13 @@ def main_controller(frame):
     global derived_kb_arr
     try:
 
-        tt = (random.randrange(-1000,1000))*0.01*(DISTANCE/343)*(1/1000) + (DISTANCE/343)
-        temp = (random.randrange(-1000,1000))*0.01*(293.15)*(1/1000) + (293.15)
+        #tt = (random.randrange(-1000,1000))*0.01*(DISTANCE/343)*(1/1000) + (DISTANCE/343)
+        #temp = (random.randrange(-1000,1000))*0.01*(293.15)*(1/1000) + (293.15)
+        tt = timett()
+        temp = 293.15
 
-        c_s = c_from_tt(tt)
-        kb_d = kb_from_tt(tt, temp)
+        c_s = c_from_tt(tt, distance_d)
+        kb_d = kb_from_tt(tt, temp, distance_d)
 
         # Calculate time since started
         t = time.perf_counter() - t0
@@ -244,8 +267,10 @@ except (KeyboardInterrupt, SystemExit):
     print("Interrupt experienced. Early Exit.")
     exit()
 except Exception as e:
+    GPIO.cleanup()
     print(e)
 
 print("Exiting the program...")
+GPIO.cleanup()
 save_data()
 save_plot(fig_now)
