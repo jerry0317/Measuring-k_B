@@ -190,7 +190,7 @@ print()
 print("NOTE: You can exit the recodring early by pressing ctrl + C.")
 
 fig = plt.figure(1)
-lines = [plt.plot([], [], '.', label="Realtime Measurement")[0], plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label="True $k_B$")[0]]
+lines = [plt.plot([], [], '.', label="Realtime Measurement", markersize=10)[0], plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label="True $k_B$")[0]]
 
 def plt_init():
     plt.xlabel("Time (s)")
@@ -262,8 +262,8 @@ try:
     fig_now = plt.gcf()
     plt.show()
 except (KeyboardInterrupt, SystemExit):
-    save_data()
-    save_plot(fig_now)
+    #save_data()
+    #save_plot(fig_now)
     print("Interrupt experienced. Early Exit.")
     exit()
 except Exception as e:
