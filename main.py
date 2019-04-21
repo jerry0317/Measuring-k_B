@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 import os
+import csv
 
 import random
 
@@ -35,9 +36,6 @@ GPIO.setup(GPIO_ECHO, GPIO.IN)
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
 
-# Boxcar averaging ON/OFF
-BOXCAR_AVG = False
-
 # Boxcar Averaging Algorithm
 def boxcar_avg(varset, times, b_interval, var_name = None, var_unit = None, print_results = True):
     t_n = times[-1]
@@ -56,7 +54,7 @@ def user_input(val_name, val_range = None):
 
     while(input_hold):
         try:
-            val_d = input("Please enter an desired {}: ".format(val_name))
+            val_d = input("Please enter the value of {}: ".format(val_name))
             val_d = float(val_d)
             val_min = val_range[0]
             val_max = val_range[1]
@@ -99,41 +97,37 @@ def file_name(suffix):
 
 # Saving the data
 def save_data():
-    # global temp_arr
-    # global time_arr
-    # if BOXCAR_AVG:
-    #     global box_temp_arr
-    # try:
-    #     with open(file_name("txt"), "w+") as f:
-    #         if BOXCAR_AVG:
-    #             f.write("Boxcar Averaging is turned on.\n")
-    #             f.write("Time (s)    Temperature (°C)    Averaged T (°C)\n")
-    #         else:
-    #             f.write("Boxcar Averaging is turned off.\n")
-    #             f.write("Time (s)    Temperature (°C)\n")
-    #         try:
-    #             count = len(time_arr)
-    #             if len(temp_arr) != count:
-    #                 raise Exception("Different list lengths.")
-    #             if BOXCAR_AVG:
-    #                 if len(box_temp_arr) != count:
-    #                     raise Exception("Different list lengths.")
-    #         except Exception as e:
-    #             print(e)
-    #         else:
-    #             pass
-    #
-    #         for i in range(0, count):
-    #             if BOXCAR_AVG:
-    #                 f.write("{0}    {1}    {2}\n".format(round(time_arr[i], 4), round(temp_arr[i], 4), round(box_temp_arr[i], 4)))
-    #             else:
-    #                 f.write("{0}    {1}\n".format(round(time_arr[i], 4), round(temp_arr[i], 4)))
-    #
-    #     print("\nData saved to {}.\n".format(file_name('txt')))
-    # except Exception as e:
-    #     print(e)
-    # else:
-    #     pass
+    h = ["Time", "Exp Distance", "Measured Time Diff", "Temperature", "Derived k_B"]
+
+    try:
+        with open(file_name("csv"), "w+") as f:
+            dict_writer = csv.DictWriter(f, h)
+
+            dict_writer.writeheader()
+            try:
+                count = len(time_arr)
+                if len(temp_arr) != count or len(tt_arr) != count or len(derived_kb_arr) != count:
+                    raise Exception("Different list lengths.")
+            except Exception as e:
+                print(e)
+            else:
+                pass
+
+            for i in range(0, count):
+                dict_writer.writerow({
+                    h[0]: time_arr[i],
+                    h[1]: distance_d,
+                    h[2]: tt_arr[i],
+                    h[3]: temp_arr[i],
+                    h[4]: derived_kb_arr[i]
+                })
+
+            f.close()
+        print("\nData saved to {}.\n".format(file_name('csv')))
+    except Exception as e:
+        print(e)
+    else:
+        pass
     pass
 
 # Save the plot
@@ -162,9 +156,6 @@ temp_arr = []
 
 derived_kb_arr = []
 
-if BOXCAR_AVG:
-    box_temp_arr = []
-
 def c_from_tt(tt, dis):
     c_sound = dis / tt
     return c_sound
@@ -174,23 +165,18 @@ def kb_from_tt(tt, temp, dis):
     kb = (c_sound ** 2) * MOLAR_MASS / (GAMMA * N_A * temp)
     return kb
 
-# temp_d = user_input("temperature", (30, 60))
-
-if BOXCAR_AVG:
-    boxcar_interval = user_input("boxcar time interval", (1, 1000))
-
 t0 = time.perf_counter()
 # print("\nThe {}-second temperature recording has been initiated. \n".format(TIME_ELAPSED))
 
 distance_d = user_input("distance in cm", (1,200))
 
-distance_d = distance_d / 100
+distance_d = distance_d / 100 * 2
 
 print()
 print("NOTE: You can exit the recodring early by pressing ctrl + C.")
 
 fig = plt.figure(1)
-lines = [plt.plot([], [], '.', label="Realtime Measurement", markersize=10)[0], plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label="True $k_B$")[0]]
+lines = [plt.plot([], [], '.', label="Realtime Measurement", markersize=12)[0], plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label="True $k_B$")[0]]
 
 def plt_init():
     plt.xlabel("Time (s)")
@@ -207,7 +193,7 @@ def main_controller(frame):
     global derived_kb_arr
     try:
 
-        #tt = (random.randrange(-1000,1000))*0.01*(DISTANCE/343)*(1/1000) + (DISTANCE/343)
+        #tt = (random.randrange(-1000,1000))*0.01*(distance_d/343)*(1/1000) + (distance_d/343)
         #temp = (random.randrange(-1000,1000))*0.01*(293.15)*(1/1000) + (293.15)
         tt = timett()
         temp = 293.15

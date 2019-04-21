@@ -13,7 +13,7 @@ GPIO_ECHO = 24
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN)
 
-def timett():
+def distance():
     # set Trigger to HIGH
     GPIO.output(GPIO_TRIGGER, True)
 
@@ -38,13 +38,13 @@ def timett():
     # and divide by 2, because there and back
     distance = (TimeElapsed * 34300) / 2
 
-    return TimeElapsed
+    return distance
 
 if __name__ == '__main__':
     try:
         while True:
-            tt = timett()
-            print ("Measured Time Diff = {} s".format(tt))
+            dist = distance()
+            print ("Measured Distance = %.1f cm" % dist)
             time.sleep(1)
 
         # Reset by pressing CTRL + C
