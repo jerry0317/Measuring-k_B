@@ -15,11 +15,9 @@ import numpy as np
 import os
 import csv
 
-import random
-
-#from wpdir import wiringpi
-
 import RPi.GPIO as GPIO
+
+import Adafruit_BMP.BMP085 as BMP085
 
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
@@ -32,21 +30,10 @@ GPIO_ECHO = 24
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN)
 
+bmp180 = BMP085.BMP085(busnum=1)
 
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
-
-# Boxcar Averaging Algorithm
-def boxcar_avg(varset, times, b_interval, var_name = None, var_unit = None, print_results = True):
-    t_n = times[-1]
-    t_t = t_n - b_interval
-    time_for_avg = [t for t in times if t > t_t]
-    l = len(time_for_avg)
-    var_to_avg = varset[-l:]
-    avg_var = np.mean(var_to_avg)
-    if print_results and var_name is not None:
-        print("The boxcar averaged {0} is {1} {2}.".format(var_name, round(avg_temp,4), var_unit))
-    return avg_var
 
 # Module to securely prompt for a user input
 def user_input(val_name, val_range = None):
@@ -90,6 +77,11 @@ def timett():
     TimeElapsed = StopTime - StartTime
 
     return TimeElapsed
+
+def temp_bmp():
+    temp_C = bmp180.read_temperature()
+    temp_K = temp_C + 273.15
+    return temp_K
 
 # Saving file name
 def file_name(suffix):
@@ -196,7 +188,7 @@ def main_controller(frame):
         #tt = (random.randrange(-1000,1000))*0.01*(distance_d/343)*(1/1000) + (distance_d/343)
         #temp = (random.randrange(-1000,1000))*0.01*(293.15)*(1/1000) + (293.15)
         tt = timett()
-        temp = 293.15
+        temp = temp_bmp()
 
         c_s = c_from_tt(tt, distance_d)
         kb_d = kb_from_tt(tt, temp, distance_d)
@@ -214,7 +206,7 @@ def main_controller(frame):
         kb_d_avg = np.mean(derived_kb_arr)
 
         # Print result
-        print("The measured temperature is {} K.".format(temp))
+        print("The measured temperature is {0} K ({1} °C).".format(round(temp,2), round((temp-273.15),2)))
         print("The derived speed of sound is {} m/s.".format(c_s))
         print("The derived k_B is {}.".format(kb_d))
         print("The averaged derived k_B is {}.".format(kb_d_avg))
