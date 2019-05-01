@@ -172,7 +172,7 @@ lines = [plt.plot([], [], '.', label="Realtime Measurement", markersize=12)[0], 
 
 def plt_init():
     plt.xlabel("Time (s)")
-    plt.ylabel(r"Derived $k_B$ ($10^{-23}m^2 kg s^{-2} K^{-1}$)")
+    plt.ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
     plt.legend(loc="lower right")
     for line in lines:
         line.set_data([], [])
