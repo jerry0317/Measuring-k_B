@@ -17,7 +17,9 @@ import csv
 
 import RPi.GPIO as GPIO
 
-import Adafruit_BMP.BMP085 as BMP085
+import board
+import busio
+import adafruit_bmp280
 
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
@@ -30,7 +32,13 @@ GPIO_ECHO = 24
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN)
 
-bmp180 = BMP085.BMP085(busnum=1)
+i2c = busio.I2C(board.SCL, board.SDA)
+bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(i2c)
+
+if (bmp280.temperature > 0):
+    print()
+    print("BMP280 has been connected.")
+    print()
 
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
@@ -79,7 +87,7 @@ def timett():
     return TimeElapsed
 
 def temp_bmp():
-    temp_C = bmp180.read_temperature()
+    temp_C = bmp280.temperature
     temp_K = temp_C + 273.15
     return temp_K
 
