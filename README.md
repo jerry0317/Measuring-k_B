@@ -11,7 +11,7 @@ The scripts in this repository are based on python and Raspberry Pi 3 B+. The sc
 
 ## Scripts
 The python scripts in this repository provide useful tools to monitor the data and analyze the data obtained by the sensors.
-  * `main.py` - The main script provides real-time monitoring of the measurements and plot a graph of derived Boltzmann constant with real-time updates. Automatic saving of data and plot before exiting the program.
+  * `main.py` - The main script provides real-time monitoring of the measurements and plot a graph of derived Boltzmann constant with real-time updates. Error bars and standard error lines are included for convenience. Automatic saving of data and plot before exiting the program.
   * `us-test.py` - A script to test the HC-SR04 Ultrasonic Wave Detector Ranging Module. It prints the distance (with sound speed of 343.0 m/s) that the sensor detects in real-time.
   * `bmp_test.py` - A script to test the BMP180 Barometric Pressure, Temperature and Altitude Sensor. Adapted from Adafruit (see Resources).
   * `bmp280_test.py` - A script to test the BMP280 Barometric Pressure and Temperature Sensor. Adapted from Adafruit (see Resources).
@@ -19,8 +19,9 @@ The python scripts in this repository provide useful tools to monitor the data a
 ## Notes
 Currently our experiment works under the atmosphere environment. We plan to increase the accuracy of the measurements by implementing the following improvements in the near future:
 
-* Conduct our experiments in pure gas environments (Nitrogen, Oxygen, etc).
+* Conduct our experiments in pure gas environments (Nitrogen, Oxygen, etc). We are planning to use the glove boxes.
 * Use BMP280 I2C or SPI Barometric Pressure and Altitude Sensor, which has 2x accuracy than the current BMP180 sensor. **[Implemented]**
+* More accurate distance measurements with infrared (IR) distance sensor.
 
 ## People
 This is a project from Physics 13CH/CS15C course of UCSB. Our team members are:
