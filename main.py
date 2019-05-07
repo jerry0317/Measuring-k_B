@@ -77,11 +77,11 @@ def timett():
 
     # save StartTime
     while GPIO.input(GPIO_ECHO) == 0:
-        StartTime = time.perf_counter()
+        StartTime = time.time()
 
     # save time of arrival
     while GPIO.input(GPIO_ECHO) == 1:
-        StopTime = time.perf_counter()
+        StopTime = time.time()
 
     # time difference between start and arrival
     TimeElapsed = StopTime - StartTime
@@ -150,7 +150,7 @@ MOLAR_MASS = 28.97 * 10 ** (-3)
 GAMMA = 1.40
 
 # Controller Constants
-DELAY = 1.0
+DELAY = 1
 
 # Experiment Error Constants
 DIS_ERR_ABS = 0.005
@@ -212,7 +212,8 @@ fig = plt.figure(1)
 ax = plt.gca()
 line, (bottoms, tops), verts = ax.errorbar([0], [0], yerr=0.01, capsize=3, fmt='ko', markersize=4, elinewidth=1,label="Realtime Measurement").lines
 
-st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"+3$\sigma$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"-3$\sigma$")[0]]
+# st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"+3$\sigma$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"-3$\sigma$")[0]]
+st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0]]
 
 t0 = time.perf_counter()
 
@@ -286,8 +287,10 @@ def main_controller(frame):
         verts[0].set_segments(err_gp[2])
 
         # Plotting Reference lines
-        x_list = list(itertools.repeat([np.min(time_arr), np.max(time_arr)], 4))
-        y_list = [[kb_d_avg , kb_d_avg], [K_B, K_B], [kb_d_sigma_up, kb_d_sigma_up], [kb_d_sigma_down], [kb_d_sigma_down]]
+        # x_list = list(itertools.repeat([np.min(time_arr), np.max(time_arr)], 4))
+        # y_list = [[kb_d_avg , kb_d_avg], [K_B, K_B], [kb_d_sigma_up, kb_d_sigma_up], [kb_d_sigma_down], [kb_d_sigma_down]]
+        x_list = list(itertools.repeat([np.min(time_arr), np.max(time_arr)], 2))
+        y_list = [[kb_d_avg , kb_d_avg], [K_B, K_B]]
 
         for lnum, st_line in enumerate(st_lines):
             st_line.set_data(x_list[lnum], y_list[lnum])
