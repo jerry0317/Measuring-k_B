@@ -106,3 +106,4 @@ venv.bak/
 # macOS
 .DS_Store
 .AppleDouble
+playground.py

@@ -17,30 +17,9 @@ import os
 import csv
 import itertools
 
-import RPi.GPIO as GPIO
-
-import board
-import busio
-import adafruit_bmp280
-
-#GPIO Mode (BOARD / BCM)
-GPIO.setmode(GPIO.BCM)
-
-#set GPIO Pins
-GPIO_TRIGGER = 18
-GPIO_ECHO = 24
-
-#set GPIO direction (IN / OUT)
-GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
-GPIO.setup(GPIO_ECHO, GPIO.IN)
-
-i2c = busio.I2C(board.SCL, board.SDA)
-bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(i2c)
-
-if (bmp280.temperature > 0):
-    print()
-    print("BMP280 has been connected.")
-    print()
+import serial
+import json
+import threading
 
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
@@ -66,32 +45,6 @@ def user_input(val_name, val_range = None):
     print("{0} is set as {1}.".format(val_name, val_d))
     print()
     return val_d
-
-def timett():
-    # set Trigger to HIGH
-    GPIO.output(GPIO_TRIGGER, True)
-
-    # set Trigger after 0.01ms to LOW
-    time.sleep(0.00001)
-    GPIO.output(GPIO_TRIGGER, False)
-
-    # save StartTime
-    while GPIO.input(GPIO_ECHO) == 0:
-        StartTime = time.time()
-
-    # save time of arrival
-    while GPIO.input(GPIO_ECHO) == 1:
-        StopTime = time.time()
-
-    # time difference between start and arrival
-    TimeElapsed = StopTime - StartTime
-
-    return TimeElapsed
-
-def temp_bmp():
-    temp_C = bmp280.temperature
-    temp_K = temp_C + 273.15
-    return temp_K
 
 # Saving file name
 def file_name(suffix):
@@ -161,14 +114,6 @@ DIS_ERR_ABS = 0.005
 TT_ERR_ABS = 4.665306263360271e-07
 TEMP_ERR_ABS = 0.5
 
-# List storing values
-tt_arr = []
-time_arr = []
-temp_arr = []
-
-derived_kb_arr = []
-kb_err_abs_arr = []
-
 def c_from_tt(tt, dis):
     c_sound = dis / tt
     return c_sound
@@ -177,10 +122,6 @@ def kb_from_tt(tt, temp, dis):
     c_sound = c_from_tt(tt, dis)
     kb = (c_sound ** 2) * MOLAR_MASS / (GAMMA * N_A * temp)
     return kb
-
-# # Van der Waals Correction
-# def kb_from_vdw_tt(tt, temp, pres, dis):
-
 
 def err_from_tt_pct(tt, temp, dis):
     dis_err_pct = DIS_ERR_ABS / dis
@@ -219,8 +160,89 @@ distance_d = user_input("distance in cm", (1,200))
 
 distance_d = distance_d / 100 * 2
 
+# Arduino Serial Port Address
+SERIAL_ADR = '/dev/cu.usbmodem14201'
+SERIAL_PORT = 9600
+SERIAL_DELAY = 0.5
+
+# List storing values
+tt_arr = []
+time_arr = []
+temp_arr = []
+
+derived_kb_arr = []
+kb_err_abs_arr = []
+
+t0 = time.perf_counter()
+
+# Arduino Data Collecting Process
+def data_collection_ard():
+    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr
+    try:
+        ser = serial.Serial(SERIAL_ADR, SERIAL_PORT)
+    except Exception as e:
+        print(e)
+        print("FATAL ERROR. EARLY EXIT.")
+        return
+    else:
+        pass
+
+    while True:
+        l = ser.readline()
+        l = l.decode('utf-8')
+        try:
+            l_json = json.loads(l)
+            tt_us = l_json['tt_us']
+            temp = l_json['temp']
+        except Exception as e:
+            print(e)
+        else:
+            tt = tt_us * 10 ** (-6)
+            temp = temp + 273.15
+
+            c_s = c_from_tt(tt, distance_d)
+            kb_d = kb_from_tt(tt, temp, distance_d)
+
+            err_pct = err_from_tt_pct(tt, temp, distance_d)
+            err_abs = err_pct * kb_d
+
+            # Calculate time since started
+            t = time.perf_counter() - t0
+
+            # Recording data
+            tt_arr.append(tt)
+            time_arr.append(t)
+            temp_arr.append(temp)
+
+            derived_kb_arr.append(kb_d)
+            kb_err_abs_arr.append(err_abs)
+
+            kb_d_avg = np.mean(derived_kb_arr)
+
+            if len(time_arr) > 1:
+                kb_d_sigma = stats.sem(derived_kb_arr)
+            else:
+                kb_d_sigma = 0
+            kb_d_sigma_up = kb_d_avg + 3 * kb_d_sigma
+            kb_d_sigma_down = kb_d_avg - 3 * kb_d_sigma
+
+            # Print result
+            print("The measured temperature is {0} K ({1} °C).".format(round(temp,2), round((temp-273.15),2)))
+            print("The derived speed of sound is {} m/s.".format(c_s))
+            print("The derived k_B is {}.".format(kb_d))
+            print("The averaged derived k_B is {}.".format(kb_d_avg))
+            print("The precision of the measurement is {}%.".format(err_pct * 100))
+
+            print()
+
+        time.sleep(SERIAL_DELAY)
+
 print()
 print("NOTE: You can exit the recodring early by pressing ctrl + C.")
+
+thread1 = threading.Thread(target=data_collection_ard, daemon=True)
+
+thread1.start()
 
 fig = plt.figure(1)
 
@@ -230,67 +252,17 @@ line, (bottoms, tops), verts = ax.errorbar([0], [0], yerr=0.01, capsize=3, fmt='
 # st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"+3$\sigma$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"-3$\sigma$")[0]]
 st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0]]
 
-t0 = time.perf_counter()
-
 def plt_init():
     plt.xlabel("Time (s)")
     plt.ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
     plt.legend(loc="lower right")
 
-    # line.set_xdata([0])
-    # line.set_ydata([0])
-    # bottoms.set_ydata([0])
-    # tops.set_ydata([0])
-    # for line in lines:
-    #     line.set_data([], [])
     return line, bottoms, tops, verts, st_lines
 
 def main_controller(frame):
-    global tt_arr
-    global time_arr
-    global temp_arr
-    global derived_kb_arr
-    global kb_err_abs_arr
+    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr
+
     try:
-
-        tt = timett()
-        temp = temp_bmp()
-
-        c_s = c_from_tt(tt, distance_d)
-        kb_d = kb_from_tt(tt, temp, distance_d)
-
-        err_pct = err_from_tt_pct(tt, temp, distance_d)
-        err_abs = err_pct * kb_d
-
-        # Calculate time since started
-        t = time.perf_counter() - t0
-
-        # Recording data
-        tt_arr.append(tt)
-        time_arr.append(t)
-        temp_arr.append(temp)
-
-        derived_kb_arr.append(kb_d)
-        kb_err_abs_arr.append(err_abs)
-
-        kb_d_avg = np.mean(derived_kb_arr)
-
-        if len(time_arr) > 1:
-            kb_d_sigma = stats.sem(derived_kb_arr)
-        else:
-            kb_d_sigma = 0
-        kb_d_sigma_up = kb_d_avg + 3 * kb_d_sigma
-        kb_d_sigma_down = kb_d_avg - 3 * kb_d_sigma
-
-        # Print result
-        print("The measured temperature is {0} K ({1} °C).".format(round(temp,2), round((temp-273.15),2)))
-        print("The derived speed of sound is {} m/s.".format(c_s))
-        print("The derived k_B is {}.".format(kb_d))
-        print("The averaged derived k_B is {}.".format(kb_d_avg))
-        print("The precision of the measurement is {}%.".format(err_pct * 100))
-
-        print()
-
         # Plotting Data with Error Bars
         err_gp = err_arr_gp(time_arr, derived_kb_arr, kb_err_abs_arr)
         line.set_xdata(time_arr)
@@ -304,6 +276,9 @@ def main_controller(frame):
         # Plotting Reference lines
         # x_list = list(itertools.repeat([np.min(time_arr), np.max(time_arr)], 4))
         # y_list = [[kb_d_avg , kb_d_avg], [K_B, K_B], [kb_d_sigma_up, kb_d_sigma_up], [kb_d_sigma_down], [kb_d_sigma_down]]
+
+        kb_d_avg = np.mean(derived_kb_arr)
+
         x_list = list(itertools.repeat([np.min(time_arr), np.max(time_arr)], 2))
         y_list = [[kb_d_avg , kb_d_avg], [K_B, K_B]]
 
@@ -321,7 +296,6 @@ def main_controller(frame):
     finally:
         return line, bottoms, tops, verts, st_lines
 
-
 anim = animation.FuncAnimation(fig, main_controller, interval=DELAY*1000, init_func = plt_init)
 
 try:
@@ -334,10 +308,8 @@ except (KeyboardInterrupt, SystemExit):
     print("Interrupt experienced. Early Exit.")
     exit()
 except Exception as e:
-    GPIO.cleanup()
     print(e)
 
 print("Exiting the program...")
-GPIO.cleanup()
 save_data()
 save_plot(fig_now)
