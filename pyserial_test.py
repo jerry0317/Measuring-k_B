@@ -14,3 +14,9 @@ while True:
     else:
         print(l_json)
     time.sleep(0.2) # Delay for one tenth of a second
+
+# import serial.tools.list_ports
+#
+# ports = serial.tools.list_ports.comports()
+#
+# print([port.device for port in ports])

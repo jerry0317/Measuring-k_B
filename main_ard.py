@@ -20,6 +20,7 @@ import itertools
 import serial
 import json
 import threading
+import serial.tools.list_ports
 
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
@@ -91,6 +92,26 @@ def save_plot(fig):
     fig_now.savefig(file_name("eps"), format='eps')
     print("\nPlot saved to {}.\n".format(file_name("eps")))
 
+# Search for Arduino Serial Port
+def search_ard_serial_port():
+    bhold = True
+    off_delay = 3
+    while bhold:
+        try:
+            ports = serial.tools.list_ports.comports()
+            for pinfo in ports:
+                if 'Arduino' in str(pinfo.manufacturer):
+                    print("Arduino has been located.")
+                    print("Serial information: {}".format(pinfo.device))
+                    bhold = False
+                    return pinfo.device
+            if bhold is True:
+                raise Exception("Failed to locate an Arduino. Check the connection.")
+        except Exception as e:
+            print(e)
+            print("Will search again in {} seconds...".format(off_delay))
+            time.sleep(off_delay)
+
 # Boltzmann constant (10^-23)
 K_B = 1.38064852
 
@@ -110,7 +131,7 @@ VDW_B = 0
 DELAY = 1
 
 # Experiment Error Constants
-DIS_ERR_ABS = 0.005
+DIS_ERR_ABS = 0.0025
 TT_ERR_ABS = 4.665306263360271e-07
 TEMP_ERR_ABS = 0.5
 
@@ -121,6 +142,12 @@ def c_from_tt(tt, dis):
 def kb_from_tt(tt, temp, dis):
     c_sound = c_from_tt(tt, dis)
     kb = (c_sound ** 2) * MOLAR_MASS / (GAMMA * N_A * temp)
+    return kb
+
+# N2 VDW Approximation
+def kb_from_tt_vdw_n2_aprx(tt, temp, dis):
+    c_sound = c_from_tt(tt, dis)
+    kb = ((c_sound ** 2) - 131) / (1.002 * 1.4 * temp) * (2.32586 * 2 * 10 ** -3)
     return kb
 
 def err_from_tt_pct(tt, temp, dis):
@@ -156,14 +183,13 @@ def err_arr_gp(x_arr, data_arr, err_arr):
 
         return (low_arr, up_arr, seg_arr)
 
-distance_d = user_input("distance in cm", (1,200))
-
-distance_d = distance_d / 100 * 2
-
 # Arduino Serial Port Address
-SERIAL_ADR = '/dev/cu.usbmodem14201'
+SERIAL_ADR = search_ard_serial_port()
 SERIAL_PORT = 9600
-SERIAL_DELAY = 0.5
+SERIAL_DELAY = 1
+
+distance_d = user_input("distance in cm", (1,200))
+distance_d = distance_d / 100 * 2
 
 # List storing values
 tt_arr = []
@@ -173,11 +199,13 @@ temp_arr = []
 derived_kb_arr = []
 kb_err_abs_arr = []
 
+kb_avg_arr = []
+
 t0 = time.perf_counter()
 
 # Arduino Data Collecting Process
 def data_collection_ard():
-    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr
+    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr, kb_avg_arr
     try:
         ser = serial.Serial(SERIAL_ADR, SERIAL_PORT)
     except Exception as e:
@@ -194,6 +222,8 @@ def data_collection_ard():
             l_json = json.loads(l)
             tt_us = l_json['tt_us']
             temp = l_json['temp']
+            if tt_us == 0:
+                raise Exception("Zero Time Diff.")
         except Exception as e:
             print(e)
         else:
@@ -201,7 +231,8 @@ def data_collection_ard():
             temp = temp + 273.15
 
             c_s = c_from_tt(tt, distance_d)
-            kb_d = kb_from_tt(tt, temp, distance_d)
+            # kb_d = kb_from_tt(tt, temp, distance_d)
+            kb_d = kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
 
             err_pct = err_from_tt_pct(tt, temp, distance_d)
             err_abs = err_pct * kb_d
@@ -218,6 +249,8 @@ def data_collection_ard():
             kb_err_abs_arr.append(err_abs)
 
             kb_d_avg = np.mean(derived_kb_arr)
+
+            kb_avg_arr.append(kb_d_avg)
 
             if len(time_arr) > 1:
                 kb_d_sigma = stats.sem(derived_kb_arr)
@@ -238,29 +271,36 @@ def data_collection_ard():
         time.sleep(SERIAL_DELAY)
 
 print()
-print("NOTE: You can exit the recodring early by pressing ctrl + C.")
+print("NOTE!: Exit the recodring early by pressing ctrl + C.")
 
 thread1 = threading.Thread(target=data_collection_ard, daemon=True)
 
 thread1.start()
 
-fig = plt.figure(1)
+fig = plt.figure()
 
-ax = plt.gca()
-line, (bottoms, tops), verts = ax.errorbar([0], [0], yerr=0.01, capsize=3, fmt='ko', markersize=4, elinewidth=1,label="Realtime Measurement").lines
+ax1 = fig.add_subplot(211)
+
+ax2 = fig.add_subplot(212)
+
+# ax = plt.gca()
+line, (bottoms, tops), verts = ax1.errorbar([0], [0], yerr=0.01, capsize=0.1, fmt='ko', markersize=4, elinewidth=1,label="Realtime Measurement").lines
 
 # st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"+3$\sigma$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"-3$\sigma$")[0]]
-st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0]]
+st_lines = [ax1.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], ax1.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], ax1.plot([], [], '.', label="Instantaneous Average Value", markersize=8)[0], ax2.plot([], [], '.', label="Temperature")[0]]
 
 def plt_init():
-    plt.xlabel("Time (s)")
-    plt.ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
-    plt.legend(loc="lower right")
+    ax1.set_xlabel("Time (s)")
+    ax1.set_ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
+    ax1.legend(loc="lower right")
 
+    ax2.set_xlabel("Time (s)")
+    ax2.set_ylabel(r"Temperature $T$ (K)")
+    ax2.legend(loc="lower right")
     return line, bottoms, tops, verts, st_lines
 
 def main_controller(frame):
-    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr
+    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr, kb_avg_arr
 
     try:
         # Plotting Data with Error Bars
@@ -282,11 +322,24 @@ def main_controller(frame):
         x_list = list(itertools.repeat([np.min(time_arr), np.max(time_arr)], 2))
         y_list = [[kb_d_avg , kb_d_avg], [K_B, K_B]]
 
+        x_list.append(time_arr)
+        y_list.append(kb_avg_arr)
+
+        x_list.append(time_arr)
+        y_list.append(temp_arr)
+
         for lnum, st_line in enumerate(st_lines):
             st_line.set_data(x_list[lnum], y_list[lnum])
 
         fig.gca().relim()
         fig.gca().autoscale_view()
+
+        ax1.relim()
+        ax1.autoscale_view()
+
+        ax2.relim()
+        ax2.autoscale_view()
+        ax2.set_ylim([np.min(temp_arr) - 0.1,np.max(temp_arr) + 0.1])
 
     except (KeyboardInterrupt, SystemExit):
         print()

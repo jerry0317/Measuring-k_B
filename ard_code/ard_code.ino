@@ -14,7 +14,7 @@ const int echoPin = 6; // Echo Pin of Ultrasonic Sensor
 #define BMP_MOSI 11 
 #define BMP_CS 10
 
-#define DELAY 100
+#define DELAY 1000
 
 Adafruit_BMP280 bme;
 

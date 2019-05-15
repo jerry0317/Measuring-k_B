@@ -321,7 +321,6 @@ def main_controller(frame):
     finally:
         return line, bottoms, tops, verts, st_lines
 
-
 anim = animation.FuncAnimation(fig, main_controller, interval=DELAY*1000, init_func = plt_init)
 
 try:
