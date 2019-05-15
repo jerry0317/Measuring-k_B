@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-# main.py - the main file for measuring Boltzmann constant experiment
+# main_ard.py - the main file for measuring Boltzmann constant experiment (with Arduino)
 #
 # Created by Jerry Yan
 #
 # Some code excerpted from Physics 13BH/CS15B
+
+import util
 
 import sys
 import time
@@ -24,28 +26,6 @@ import serial.tools.list_ports
 
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
-
-# Module to securely prompt for a user input
-def user_input(val_name, val_range = None):
-    input_hold = True
-
-    while(input_hold):
-        try:
-            val_d = input("Please enter the value of {}: ".format(val_name))
-            val_d = float(val_d)
-            val_min = val_range[0]
-            val_max = val_range[1]
-            if val_d < val_min or val_d > val_max:
-                raise Exception("{} out of range.".format(val_name))
-        except Exception as e:
-            print(e)
-            print("ERROR. Please try again.")
-        else:
-            input_hold = False
-    print()
-    print("{0} is set as {1}.".format(val_name, val_d))
-    print()
-    return val_d
 
 # Saving file name
 def file_name(suffix):
@@ -188,7 +168,7 @@ SERIAL_ADR = search_ard_serial_port()
 SERIAL_PORT = 9600
 SERIAL_DELAY = 1
 
-distance_d = user_input("distance in cm", (1,200))
+distance_d = util.user_input("distance in cm", (1,200))
 distance_d = distance_d / 100 * 2
 
 # List storing values
