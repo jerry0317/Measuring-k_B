@@ -33,7 +33,7 @@ def file_name(suffix):
 
 # Saving the data
 def save_data():
-    h = ["Time", "Exp Distance", "Measured Time Diff", "Temperature", "Derived k_B", "Derived k_B Error"]
+    h = ["Time", "Exp Distance", "Measured Time Diff", "Temperature", "Derived k_B", "Derived k_B Error", "Pressure"]
 
     try:
         with open(file_name("csv"), "w+") as f:
@@ -56,7 +56,8 @@ def save_data():
                     h[2]: tt_arr[i],
                     h[3]: temp_arr[i],
                     h[4]: derived_kb_arr[i],
-                    h[5]: kb_err_abs_arr[i]
+                    h[5]: kb_err_abs_arr[i],
+                    h[6]: pres_arr[i]
                 })
 
             f.close()
@@ -175,6 +176,7 @@ distance_d = distance_d / 100 * 2
 tt_arr = []
 time_arr = []
 temp_arr = []
+pres_arr = []
 
 derived_kb_arr = []
 kb_err_abs_arr = []
@@ -202,6 +204,7 @@ def data_collection_ard():
             l_json = json.loads(l)
             tt_us = l_json['tt_us']
             temp = l_json['temp']
+            pres = l_json['pres']
             if tt_us == 0:
                 raise Exception("Zero Time Diff.")
         except Exception as e:
@@ -224,6 +227,7 @@ def data_collection_ard():
             tt_arr.append(tt)
             time_arr.append(t)
             temp_arr.append(temp)
+            pres_arr.append(pres)
 
             derived_kb_arr.append(kb_d)
             kb_err_abs_arr.append(err_abs)
@@ -261,13 +265,14 @@ fig = plt.figure()
 
 ax1 = fig.add_subplot(211)
 
-ax2 = fig.add_subplot(212)
+ax2 = fig.add_subplot(223)
 
-# ax = plt.gca()
+ax3 = fig.add_subplot(224)
+
 line, (bottoms, tops), verts = ax1.errorbar([0], [0], yerr=0.01, capsize=0.1, fmt='ko', markersize=4, elinewidth=1,label="Realtime Measurement").lines
 
 # st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"+3$\sigma$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"-3$\sigma$")[0]]
-st_lines = [ax1.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], ax1.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], ax1.plot([], [], '.', label="Instantaneous Average Value", markersize=8)[0], ax2.plot([], [], '.', label="Temperature")[0]]
+st_lines = [ax1.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], ax1.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], ax1.plot([], [], '.', label="Instantaneous Average Value", markersize=8)[0], ax2.plot([], [], '.', label="Temperature")[0], ax3.plot([], [], '.', label="Pressure")[0]]
 
 def plt_init():
     ax1.set_xlabel("Time (s)")
@@ -277,6 +282,10 @@ def plt_init():
     ax2.set_xlabel("Time (s)")
     ax2.set_ylabel(r"Temperature $T$ (K)")
     ax2.legend(loc="lower right")
+
+    ax3.set_xlabel("Time (s)")
+    ax3.set_ylabel(r"Pressure $P$ (Pa)")
+    ax3.legend(loc="lower right")
     return line, bottoms, tops, verts, st_lines
 
 def main_controller(frame):
@@ -308,6 +317,9 @@ def main_controller(frame):
         x_list.append(time_arr)
         y_list.append(temp_arr)
 
+        x_list.append(time_arr)
+        y_list.append(pres_arr)
+
         for lnum, st_line in enumerate(st_lines):
             st_line.set_data(x_list[lnum], y_list[lnum])
 
@@ -320,6 +332,10 @@ def main_controller(frame):
         ax2.relim()
         ax2.autoscale_view()
         ax2.set_ylim([np.min(temp_arr) - 0.1,np.max(temp_arr) + 0.1])
+
+        ax3.relim()
+        ax3.autoscale_view()
+        ax3.set_ylim([np.min(pres_arr) - 100,np.max(pres_arr) + 100])
 
     except (KeyboardInterrupt, SystemExit):
         print()

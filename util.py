@@ -5,13 +5,13 @@
 # Created by Jerry Yan
 
 # Module to securely prompt for a user input
-def user_input(val_name, val_range = None, float = True):
+def user_input(val_name, val_range = None, val_float = True):
     input_hold = True
 
     while(input_hold):
         try:
             val_d = input("Please enter the value of {}: ".format(val_name))
-            if float:
+            if val_float is True:
                 val_d = float(val_d)
                 val_min = val_range[0]
                 val_max = val_range[1]

@@ -11,7 +11,7 @@ const int echoPin = 6; // Echo Pin of Ultrasonic Sensor
 
 #define BMP_SCK 13
 #define BMP_MISO 12
-#define BMP_MOSI 11 
+#define BMP_MOSI 11
 #define BMP_CS 10
 
 #define DELAY 1000
@@ -21,18 +21,19 @@ Adafruit_BMP280 bme;
 void setup() {
    Serial.begin(9600); // Starting Serial Terminal
 
-   if (!bme.begin()) {  
+   if (!bme.begin()) {
     Serial.println("Could not find a valid BMP280 sensor, check wiring!");
     while (1);
   }
 }
 
 void loop() {
-   float duration, temperature;
+   float duration, temperature, pressure;
    StaticJsonDocument<200> doc;
-   
+
    temperature = bme.readTemperature();
-   
+   pressure = bme.readPressure();
+
    pinMode(pingPin, OUTPUT);
    digitalWrite(pingPin, LOW);
    delayMicroseconds(2);
@@ -41,9 +42,10 @@ void loop() {
    digitalWrite(pingPin, LOW);
    pinMode(echoPin, INPUT);
    duration = pulseIn(echoPin, HIGH);
-   
+
    doc["tt_us"] = duration;
    doc["temp"] = temperature;
+   doc["pres"] = pressure; 
    serializeJson(doc, Serial);
    Serial.println();
    delay(DELAY);
