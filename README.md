@@ -19,6 +19,8 @@ The python scripts in this repository provide useful tools to monitor the data a
   * `pyserial_test.py` - A script to test the ability of python client to receive and parse JSON data from Arduino.
   * `main_ard.py` - *(Preferred)* The client-side script (using with Arduino via code `ard_code.ino`) provides real-time monitoring of the measurements and plots a graph of derived Boltzmann constant with real-time updates. Error bars and standard error lines are included for convenience. Automatic saving of data and plot before exiting the program. All data analysis computations and plotting are done on the client side, which shall has no effect on the time-precision-sensitive measurements that are done on the Arduino side. The script utilizes the multithreading feature in Python 3, which allows the script to receive the data measurement from Arduino and generate a real-time plot simultaneously.
     * *Note: `ard_code.ino` should always be uploaded to Arduino before running `main_ard.py`.*
+  * `plot.py` - A simple script to plot an existing data set. Automatic saving of plot before exiting the program.
+  * `plot2.py` - A simple script to plot an existing data set, with comparison of the data with and with out Van der Waals correction. Automatic saving of plot before exiting the program.
 
 ## Notes
 Currently our experiment works under the atmosphere environment. We plan to increase the accuracy of the measurements by implementing the following improvements in the near future:
