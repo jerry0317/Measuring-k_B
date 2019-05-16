@@ -12,83 +12,12 @@ import matplotlib.pyplot as plt
 import itertools
 import time
 
-def c_from_tt(tt, dis):
-    c_sound = dis / tt
-    return c_sound
-
-def kb_from_tt(tt, temp, dis):
-    c_sound = c_from_tt(tt, dis)
-    kb = (c_sound ** 2) * MOLAR_MASS / (GAMMA * N_A * temp)
-    return kb
-
-# N2 VDW Approximation
-def kb_from_tt_vdw_n2_aprx(tt, temp, dis):
-    c_sound = c_from_tt(tt, dis)
-    kb = ((c_sound ** 2) - 131) / (1.002 * 1.4 * temp) * (2.32586 * 2 * 10 ** -3)
-    return kb
-
-def err_from_tt_pct(tt, temp, dis):
-    dis_err_pct = DIS_ERR_ABS / dis
-    temp_err_pct = TEMP_ERR_ABS / temp
-    tt_err_pct = TT_ERR_ABS / tt
-    err_pct = 2 * (dis_err_pct + tt_err_pct) + temp_err_pct
-    return err_pct
-
-def err_from_tt_vdw_pct(tt, temp, pres, dis):
-    dis_err_pct = DIS_ERR_ABS / dis
-    temp_err_pct = TEMP_ERR_ABS / temp
-    tt_err_pct = TT_ERR_ABS / tt
-    err_pct = 2 * (dis_err_pct + tt_err_pct) + temp_err_pct
-    return err_pct
-
-def err_arr_gp(x_arr, data_arr, err_arr):
-    if len(data_arr) != len(err_arr):
-        return False
-    else:
-        up_arr = []
-        low_arr = []
-        seg_arr = []
-        for i in range(0, len(data_arr)):
-            x_p = x_arr[i]
-            data_p = data_arr[i]
-            err_p = err_arr[i]
-            up_p = data_p + err_p
-            low_p = data_p - err_p
-            up_arr.append(up_p)
-            low_arr.append(low_p)
-            seg_arr.append([[x_p, low_p], [x_p, up_p]])
-
-        return (low_arr, up_arr, seg_arr)
-
 def save_plot(fig):
     eps_loc = DATA_NAME + "_plt2_" + str(int(time.time())) + '.eps'
     fig_now.savefig(eps_loc, format='eps')
     print("\nPlot saved to {}.\n".format(eps_loc))
 
-# Boltzmann constant (10^-23)
-K_B = 1.38064852
-
-# Avogadro constant (10^23)
-N_A = 6.02214
-
-# Experiment Constants
-# DISTANCE = 1
-MOLAR_MASS = 28.97 * 10 ** (-3)
-GAMMA = 1.40
-
-# Van der Waals Constants
-VDW_A = 0
-VDW_B = 0
-
-# Controller Constants
-DELAY = 1
-
-# Experiment Error Constants
-DIS_ERR_ABS = 0.0025
-TT_ERR_ABS = 4.665306263360271e-07
-TEMP_ERR_ABS = 0.5
-
-data_id = util.user_input("data number", float=False)
+data_id = util.user_input("data number", val_float=False)
 DATA_NAME = DATA_NAME = "data/{}".format(data_id)
 csv_loc = DATA_NAME + ".csv"
 
@@ -126,11 +55,11 @@ except Exception as e:
 for i in range(0, len(time_arr)):
     tt = tt_arr[i]
     temp = temp_arr[i]
-    c_s = c_from_tt(tt, distance_d)
-    # kb_d = kb_from_tt(tt, temp, distance_d)
-    kb_d = kb_from_tt(tt, temp, distance_d)
+    c_s = util.c_from_tt(tt, distance_d)
+    # kb_d = util.kb_from_tt(tt, temp, distance_d)
+    kb_d = util.kb_from_tt(tt, temp, distance_d)
 
-    err_pct = err_from_tt_pct(tt, temp, distance_d)
+    err_pct = util.err_from_tt_pct(tt, temp, distance_d)
     err_abs = err_pct * kb_d
 
     derived_kb_arr.append(kb_d)
@@ -140,8 +69,8 @@ for i in range(0, len(time_arr)):
 
     kb_avg_arr.append(kb_d_avg)
 
-    kb_d = kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
-    err_pct = err_from_tt_pct(tt, temp, distance_d)
+    kb_d = util.kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
+    err_pct = util.err_from_tt_pct(tt, temp, distance_d)
     err_abs = err_pct * kb_d
 
     derived_kb_vdw_arr.append(kb_d)
@@ -171,7 +100,7 @@ ax2.set_xlabel("Time (s)")
 ax2.set_ylabel(r"Temperature $T$ (K)")
 ax2.legend(loc="lower right")
 
-err_gp = err_arr_gp(time_arr, derived_kb_arr, kb_err_abs_arr)
+err_gp = util.err_arr_gp(time_arr, derived_kb_arr, kb_err_abs_arr)
 line.set_xdata(time_arr)
 line.set_ydata(derived_kb_arr)
 bottoms.set_xdata(time_arr)
@@ -182,7 +111,7 @@ verts[0].set_segments(err_gp[2])
 
 kb_d_avg = np.mean(derived_kb_arr)
 
-err_gpb = err_arr_gp(time_arr, derived_kb_vdw_arr, kb_err_abs_vdw_arr)
+err_gpb = util.err_arr_gp(time_arr, derived_kb_vdw_arr, kb_err_abs_vdw_arr)
 lineb.set_xdata(time_arr)
 lineb.set_ydata(derived_kb_vdw_arr)
 bottomsb.set_xdata(time_arr)

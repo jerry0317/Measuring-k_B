@@ -39,7 +39,7 @@ def save_plot(fig):
 # Boltzmann constant (10^-23)
 K_B = 1.38064852
 
-data_id = util.user_input("data number", float=False)
+data_id = util.user_input("data number", val_float=False)
 DATA_NAME = DATA_NAME = "data/{}".format(data_id)
 csv_loc = DATA_NAME + ".csv"
 
