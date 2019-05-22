@@ -8,6 +8,8 @@ Boltzmann constant is one of the most important constants in physics. Specifical
 The scripts in this repository are based on python and Raspberry Pi 3 B+ or Arduino uno. The scripts are designed to be run on Raspberry 3 B+ or Arduino uno. The following sensors (with certain accessories like resistors) are used as follows:
   * HC-SR04 Ultrasonic Wave Detector Ranging Module
   * BMP280 Barometric Pressure and Temperature Sensor
+  * BME680 Temperature, Humidity, Pressure and Gas Sensor
+  * MCP9808 High Accuracy I2C Temperature Sensor
 
 ## Scripts
 The python scripts in this repository provide useful tools to monitor the data and analyze the data obtained by the sensors.
@@ -21,7 +23,8 @@ The python scripts in this repository provide useful tools to monitor the data a
     * *Note: `ard_code.ino` should always be uploaded to Arduino before running `main_ard.py`.*
   * `plot.py` - A simple script to plot an existing data set (with temperature information). Automatic saving of plot before exiting the program.
   * `plot2.py` - A simple script to plot an existing data set (with temperature information), with comparison of the data with and with out Van der Waals correction. Automatic saving of plot before exiting the program.
-  * `plot3.py` - A simple script to generate a distance vs k_B plot with existing data sets. Automatic saving of plot before exiting the program.
+  * `plot3.py` - A simple script to generate a distance vs k_B plot with existing data sets. Automatic saving of plot before exiting the program. User may enter a offset of HC-SR04 data if necessary.
+  * `/temp_sensor_crosstest` - A tool to compare the data collect from multiple sensors: BMP280, BME680, MCP9808.
 
 ## Notes
 Currently our experiment works under the atmosphere environment. We plan to increase the accuracy of the measurements by implementing the following improvements in the near future:
@@ -53,3 +56,5 @@ Our scripts may include knowledge/code from the following sources:
   * [PySerial](https://pyserial.readthedocs.io/en/latest/index.html)
   * [ArduinoJson](https://arduinojson.org)
   * [Arduino Guide](https://randomnerdtutorials.com/complete-guide-for-ultrasonic-sensor-hc-sr04/) for HC-SR04
+  * [Adafruit BME680](https://learn.adafruit.com/adafruit-bme680-humidity-temperature-barometic-pressure-voc-gas/arduino-wiring-test)
+  * [Adafruit MCP9808](https://learn.adafruit.com/adafruit-mcp9808-precision-i2c-temperature-sensor-guide/arduino-code)

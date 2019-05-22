@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import itertools
 import time
 
+# Boltzmann constant (10^-23)
+K_B = 1.38064852
+
 def save_plot(fig):
     eps_loc = "data/plt3_" + str(int(time.time())) + '.eps'
     fig_now.savefig(eps_loc, format='eps')
@@ -22,9 +25,14 @@ data_id = data_id.split(",")
 
 data_ids = [d.strip() for d in data_id]
 
+# Desired Offset (ms)
+OFFSET = util.user_input("offset in ms", [0,1])
+
 # List storing values
 d_arr = []
 kb_arr = []
+
+kb_offset_arr = []
 
 for di in data_ids:
 
@@ -39,6 +47,7 @@ for di in data_ids:
     distance_d = 0
     temp_arr = []
     derived_kb_arr = []
+    derived_kb_offset_arr = []
 
     try:
         csvFile = open(csv_loc, "r")
@@ -55,15 +64,17 @@ for di in data_ids:
 
     for i in range(0, len(time_arr)):
         tt = tt_arr[i]
+        tt_offset = tt + OFFSET * 10 ** -3
         temp = temp_arr[i]
-        c_s = util.c_from_tt(tt, distance_d)
         kb_d = util.kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
+        kb_d_offset = util.kb_from_tt_vdw_n2_aprx(tt_offset, temp, distance_d)
 
         derived_kb_arr.append(kb_d)
-
+        derived_kb_offset_arr.append(kb_d_offset)
 
     d_arr.append(distance_d)
     kb_arr.append(np.mean(derived_kb_arr))
+    kb_offset_arr.append(np.mean(derived_kb_offset_arr))
 
 fig = plt.figure()
 
@@ -72,10 +83,13 @@ ax1 = fig.add_subplot(111)
 ax1.set_xlabel("Distance (m)")
 ax1.set_ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
 
-ax1.plot(d_arr, kb_arr, '.', label="Averaged data")
+ax1.plot(d_arr, kb_arr, '.', label="Data", markersize=12)
+if OFFSET > 0:
+    ax1.plot(d_arr, kb_offset_arr, 'm.', label="Data w./ offset {}ms".format(OFFSET), markersize=12)
 ax1.plot([np.min(d_arr), np.max(d_arr)],[K_B, K_B], linestyle = 'dashed', label = r"True $k_B$")
 
 ax1.legend(loc="upper right")
+#ax1.loglog()
 
 try:
     fig_now = plt.gcf()

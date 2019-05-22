@@ -24,6 +24,9 @@ import json
 import threading
 import serial.tools.list_ports
 
+# Boltzmann constant (10^-23)
+K_B = 1.38064852
+
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
 
@@ -101,7 +104,7 @@ SERIAL_ADR = search_ard_serial_port()
 SERIAL_PORT = 9600
 SERIAL_DELAY = 1
 
-distance_d = util.user_input("distance in cm", (1,200))
+distance_d = util.user_input("distance in cm", (1,400))
 distance_d = distance_d / 100 * 2
 
 # List storing values
@@ -119,7 +122,7 @@ t0 = time.perf_counter()
 
 # Arduino Data Collecting Process
 def data_collection_ard():
-    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr, kb_avg_arr
+    global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr, kb_avg_arr, pres_arr
     try:
         ser = serial.Serial(SERIAL_ADR, SERIAL_PORT)
     except Exception as e:
@@ -141,6 +144,8 @@ def data_collection_ard():
                 raise Exception("Zero Time Diff.")
         except Exception as e:
             print(e)
+            print("Serial reads:")
+            print(l)
         else:
             tt = tt_us * 10 ** (-6)
             temp = temp + 273.15
@@ -269,7 +274,7 @@ def main_controller(frame):
 
         ax2.set_ylim([np.min(temp_arr) - 0.1,np.max(temp_arr) + 0.1])
         ax3.set_ylim([np.min(pres_arr) - 25,np.max(pres_arr) + 25])
-        ax4.set_ylim([np.mean(tt_arr) * 1.01,np.mean(tt_arr) * 0.99])
+        ax4.set_ylim([np.min(tt_arr) * 0.9, np.max(tt_arr) * 1.1])
 
     except (KeyboardInterrupt, SystemExit):
         print()

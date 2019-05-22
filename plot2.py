@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import itertools
 import time
 
+# Boltzmann constant (10^-23)
+K_B = 1.38064852
+
 def save_plot(fig):
     eps_loc = DATA_NAME + "_plt2_" + str(int(time.time())) + '.eps'
     fig_now.savefig(eps_loc, format='eps')

@@ -46,7 +46,7 @@ VDW_B = 0
 # Experiment Error Constants
 DIS_ERR_ABS = 0.0025
 TT_ERR_ABS = 4.665306263360271e-07
-TEMP_ERR_ABS = 0.5
+TEMP_ERR_ABS = 0.125
 
 def c_from_tt(tt, dis):
     c_sound = dis / tt
@@ -60,7 +60,7 @@ def kb_from_tt(tt, temp, dis):
 # N2 VDW Approximation
 def kb_from_tt_vdw_n2_aprx(tt, temp, dis):
     c_sound = c_from_tt(tt, dis)
-    kb = ((c_sound ** 2) - 131) / (1.002 * 1.4 * temp) * (2.32586 * 2 * 10 ** -3)
+    kb = ((c_sound ** 2) - 611) / (1.003 * 1.4 * temp) * (2.32586 * 2 * 10 ** -3)
     return kb
 
 def err_from_tt_pct(tt, temp, dis):
