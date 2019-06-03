@@ -34,18 +34,29 @@ K_B = 1.38064852
 # Avogadro constant (10^23)
 N_A = 6.02214
 
+# Atmonic Mass Unit
+AMU =  1.660 * 10 ** (-27)
+
 # Experiment Constants
 # DISTANCE = 1
-MOLAR_MASS = 28.97 * 10 ** (-3)
+MOLAR_MASS = 14.0067 * 2 * 10 ** (-3) # n2 (kg/mol)
+MOLAR_MASS_G_N2 = 14.0067 * 2 # (g/mol)
+MOLAR_MASS_G_AIR = 28.97
 GAMMA = 1.40
 
 # Van der Waals Constants
-VDW_A = 0
-VDW_B = 0
+VDW_A_N2 = 1.370 / 10 # (L^2*Pa/mol^2)
+VDW_B_N2 = 0.0387 # (L/mol)
+VDW_A_AIR = 1.368 / 10
+VDW_B_AIR = 0.0367
+
+# Redlich-Kwong Constants
+RK_A_AIR = 15.989 / 10
+RK_B_AIR = 0.02541
 
 # Experiment Error Constants
 DIS_ERR_ABS = 0.0025
-TT_ERR_ABS = 4.665306263360271e-07
+TT_ERR_ABS = 5 * 10 ** (-6)
 TEMP_ERR_ABS = 0.125
 
 def c_from_tt(tt, dis):
@@ -61,6 +72,33 @@ def kb_from_tt(tt, temp, dis):
 def kb_from_tt_vdw_n2_aprx(tt, temp, dis):
     c_sound = c_from_tt(tt, dis)
     kb = ((c_sound ** 2) - 611) / (1.003 * 1.4 * temp) * (2.32586 * 2 * 10 ** -3)
+    return kb
+
+# N2 VDW Correction
+def kb_from_tt_vdw_n2(tt, temp, dis, pres):
+    vm = 22.4 * pres / 101325 * (temp / 273.15)
+    m_molar = 2 * GAMMA * VDW_A_N2 / (MOLAR_MASS_G_N2 * vm)
+    a_f = (vm) ** 2 / (vm - VDW_B_N2) ** 2
+    c_sound = c_from_tt(tt, dis)
+    kb = (c_sound ** 2 + m_molar) / ( a_f * GAMMA * temp ) * (MOLAR_MASS_G_N2 * AMU) * 10 ** (23)
+    return kb
+
+# Air VDW Correction
+def kb_from_tt_vdw_air(tt, temp, dis, pres):
+    vm = 22.4 * pres / 101325 * (temp / 273.15)
+    m_molar = 2 * GAMMA * VDW_A_AIR / (MOLAR_MASS_G_AIR * vm)
+    a_f = (vm) ** 2 / (vm - VDW_B_AIR) ** 2
+    c_sound = c_from_tt(tt, dis)
+    kb = (c_sound ** 2 + m_molar) / ( a_f * GAMMA * temp ) * (MOLAR_MASS_G_AIR * AMU) * 10 ** (23)
+    return kb
+
+# Air RK Correction
+def kb_from_tt_rk_air(tt, temp, dis, pres):
+    vm = 22.4 * pres / 101325 * (temp / 273.15)
+    m_molar = GAMMA * RK_A_AIR * (2 * vm + RK_B_AIR)/(sqrt(temp) * MOLAR_MASS_G_AIR * (vm + RK_B_AIR))
+    a_f = (vm) ** 2 / (vm - RK_B_AIR) ** 2
+    c_sound = c_from_tt(tt, dis)
+    kb = (c_sound ** 2 + m_molar) / ( a_f * GAMMA * temp ) * (MOLAR_MASS_G_AIR * AMU) * 10 ** (23)
     return kb
 
 def err_from_tt_pct(tt, temp, dis):

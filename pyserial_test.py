@@ -2,7 +2,7 @@ import serial
 import time
 import json
 
-ser = serial.Serial('/dev/cu.usbmodem14201', 9600)
+ser = serial.Serial('/dev/cu.HC-06-DevB', 9600)
 
 while True:
     l = ser.readline()

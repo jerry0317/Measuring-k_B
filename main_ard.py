@@ -27,6 +27,9 @@ import serial.tools.list_ports
 # Boltzmann constant (10^-23)
 K_B = 1.38064852
 
+# HC-SR04 Offset (us)
+SR04_OFFSET = 55
+
 # Data Name Format
 DATA_NAME = "data/{}".format(int(time.time()))
 
@@ -64,7 +67,7 @@ def save_data():
                 })
 
             f.close()
-        print("\nData saved to {}.\n".format(file_name('csv')))
+        print("Data saved to {}.\n".format(file_name('csv')))
     except Exception as e:
         print(e)
     else:
@@ -74,7 +77,7 @@ def save_data():
 # Save the plot
 def save_plot(fig):
     fig_now.savefig(file_name("eps"), format='eps')
-    print("\nPlot saved to {}.\n".format(file_name("eps")))
+    print("Plot saved to {}.\n".format(file_name("eps")))
 
 # Search for Arduino Serial Port
 def search_ard_serial_port():
@@ -86,6 +89,11 @@ def search_ard_serial_port():
             for pinfo in ports:
                 if 'Arduino' in str(pinfo.manufacturer):
                     print("Arduino has been located.")
+                    print("Serial information: {}".format(pinfo.device))
+                    bhold = False
+                    return pinfo.device
+                elif 'DevB' in str(pinfo.device):
+                    print("Bluetooth module has been located.")
                     print("Serial information: {}".format(pinfo.device))
                     bhold = False
                     return pinfo.device
@@ -124,7 +132,7 @@ t0 = time.perf_counter()
 def data_collection_ard():
     global tt_arr, time_arr, temp_arr, derived_kb_arr, kb_err_abs_arr, kb_avg_arr, pres_arr
     try:
-        ser = serial.Serial(SERIAL_ADR, SERIAL_PORT)
+        ser = serial.Serial(SERIAL_ADR, SERIAL_PORT, timeout=20)
     except Exception as e:
         print(e)
         print("FATAL ERROR. EARLY EXIT.")
@@ -147,12 +155,13 @@ def data_collection_ard():
             print("Serial reads:")
             print(l)
         else:
-            tt = tt_us * 10 ** (-6)
+            tt = (tt_us + SR04_OFFSET) * 10 ** (-6)
             temp = temp + 273.15
 
             c_s = util.c_from_tt(tt, distance_d)
-            # kb_d = util.kb_from_tt(tt, temp, distance_d)
-            kb_d = util.kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
+            #kb_d = util.kb_from_tt(tt, temp, distance_d)
+            #kb_d = util.kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
+            kb_d = util.kb_from_tt_vdw_n2(tt, temp, distance_d, pres)
 
             err_pct = util.err_from_tt_pct(tt, temp, distance_d)
             err_abs = err_pct * kb_d
@@ -202,25 +211,26 @@ fig = plt.figure()
 
 ax1 = fig.add_subplot(211)
 
-ax2 = fig.add_subplot(234)
+# ax2 = fig.add_subplot(234)
+# ax3 = fig.add_subplot(235)
+# ax4 = fig.add_subplot(236)
 
-ax3 = fig.add_subplot(235)
-
-ax4 = fig.add_subplot(236)
+ax2 = fig.add_subplot(223)
+ax3 = fig.add_subplot(224)
 
 line, (bottoms, tops), verts = ax1.errorbar([0], [0], yerr=0.01, capsize=0.1, fmt='ko', markersize=4, elinewidth=1,label="Realtime Measurement").lines
 
 # st_lines = [plt.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], plt.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"+3$\sigma$")[0], plt.plot([], [], 'm', linestyle='dashed', label=r"-3$\sigma$")[0]]
-st_lines = [ax1.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], ax1.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], ax1.plot([], [], '.', label="Instantaneous Average Value", markersize=8)[0], ax2.plot([], [], '.', label="Temperature")[0], ax3.plot([], [], '.', label="Pressure")[0], ax4.plot([], [], 'g.', label="HC-SR04 Raw Signal")[0]]
+st_lines = [ax1.plot([], [], linestyle='dashed', label="Mean Measured Value")[0], ax1.plot([], [], linestyle='dashed', label=r"True $k_B$")[0], ax1.plot([], [], '.', label="Instantaneous Average Value", markersize=8)[0], ax2.plot([], [], '.', label="Temperature")[0], ax3.plot([], [], '.', label="Pressure")[0]]
 
 def plt_init():
 
     ax1.set_ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
     ax2.set_ylabel(r"Temperature $T$ (K)")
     ax3.set_ylabel(r"Pressure $P$ (Pa)")
-    ax4.set_ylabel("Echo Pulse duration (s)")
+    #ax4.set_ylabel("Echo Pulse duration (s)")
 
-    for ax in [ax1, ax2, ax3, ax4]:
+    for ax in [ax1, ax2, ax3]:
         ax.set_xlabel("Time (s)")
         ax.legend(loc="lower right")
         ax.tick_params(direction="in")
@@ -259,8 +269,8 @@ def main_controller(frame):
         x_list.append(time_arr)
         y_list.append(pres_arr)
 
-        x_list.append(time_arr)
-        y_list.append(tt_arr)
+        # x_list.append(time_arr)
+        # y_list.append(tt_arr)
 
         for lnum, st_line in enumerate(st_lines):
             st_line.set_data(x_list[lnum], y_list[lnum])
@@ -268,13 +278,13 @@ def main_controller(frame):
         fig.gca().relim()
         fig.gca().autoscale_view()
 
-        for ax in [ax1, ax2, ax3, ax4]:
+        for ax in [ax1, ax2, ax3]:
             ax.relim()
             ax.autoscale_view()
 
         ax2.set_ylim([np.min(temp_arr) - 0.1,np.max(temp_arr) + 0.1])
         ax3.set_ylim([np.min(pres_arr) - 25,np.max(pres_arr) + 25])
-        ax4.set_ylim([np.min(tt_arr) * 0.9, np.max(tt_arr) * 1.1])
+        #ax4.set_ylim([np.min(tt_arr) * 0.9, np.max(tt_arr) * 1.1])
 
     except (KeyboardInterrupt, SystemExit):
         print()
