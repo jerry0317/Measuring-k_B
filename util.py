@@ -4,6 +4,8 @@
 #
 # Created by Jerry Yan
 
+import math
+
 # Module to securely prompt for a user input
 def user_input(val_name, val_range = None, val_float = True):
     input_hold = True
@@ -39,7 +41,8 @@ AMU =  1.660 * 10 ** (-27)
 
 # Experiment Constants
 # DISTANCE = 1
-MOLAR_MASS = 14.0067 * 2 * 10 ** (-3) # n2 (kg/mol)
+MOLAR_MASS_N2 = 14.0067 * 2 * 10 ** (-3) # n2 (kg/mol)
+MOLAR_MASS_AIR = 28.97 * 10 ** (-3) # n2 (kg/mol)
 MOLAR_MASS_G_N2 = 14.0067 * 2 # (g/mol)
 MOLAR_MASS_G_AIR = 28.97
 GAMMA = 1.40
@@ -63,9 +66,14 @@ def c_from_tt(tt, dis):
     c_sound = dis / tt
     return c_sound
 
-def kb_from_tt(tt, temp, dis):
+def kb_from_tt_n2(tt, temp, dis):
     c_sound = c_from_tt(tt, dis)
-    kb = (c_sound ** 2) * MOLAR_MASS / (GAMMA * N_A * temp)
+    kb = (c_sound ** 2) * MOLAR_MASS_N2 / (GAMMA * N_A * temp)
+    return kb
+
+def kb_from_tt_air(tt, temp, dis):
+    c_sound = c_from_tt(tt, dis)
+    kb = (c_sound ** 2) * MOLAR_MASS_AIR / (GAMMA * N_A * temp)
     return kb
 
 # N2 VDW Approximation
@@ -95,7 +103,7 @@ def kb_from_tt_vdw_air(tt, temp, dis, pres):
 # Air RK Correction
 def kb_from_tt_rk_air(tt, temp, dis, pres):
     vm = 22.4 * pres / 101325 * (temp / 273.15)
-    m_molar = GAMMA * RK_A_AIR * (2 * vm + RK_B_AIR)/(sqrt(temp) * MOLAR_MASS_G_AIR * (vm + RK_B_AIR))
+    m_molar = GAMMA * RK_A_AIR * (2 * vm + RK_B_AIR)/(math.sqrt(temp) * MOLAR_MASS_G_AIR * (vm + RK_B_AIR))
     a_f = (vm) ** 2 / (vm - RK_B_AIR) ** 2
     c_sound = c_from_tt(tt, dis)
     kb = (c_sound ** 2 + m_molar) / ( a_f * GAMMA * temp ) * (MOLAR_MASS_G_AIR * AMU) * 10 ** (23)

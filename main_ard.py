@@ -39,7 +39,7 @@ def file_name(suffix):
 
 # Saving the data
 def save_data():
-    h = ["Time", "Exp Distance", "Measured Time Diff", "Temperature", "Derived k_B", "Derived k_B Error", "Pressure"]
+    h = ["Time", "Exp Distance", "Measured Time Diff", "Temperature", "Derived k_B", "Derived k_B Error", "Pressure", "HC-SRO4 Raw"]
 
     try:
         with open(file_name("csv"), "w+") as f:
@@ -63,7 +63,8 @@ def save_data():
                     h[3]: temp_arr[i],
                     h[4]: derived_kb_arr[i],
                     h[5]: kb_err_abs_arr[i],
-                    h[6]: pres_arr[i]
+                    h[6]: pres_arr[i],
+                    h[7]: time_arr[i] - SR04_OFFSET
                 })
 
             f.close()
@@ -161,7 +162,9 @@ def data_collection_ard():
             c_s = util.c_from_tt(tt, distance_d)
             #kb_d = util.kb_from_tt(tt, temp, distance_d)
             #kb_d = util.kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
-            kb_d = util.kb_from_tt_vdw_n2(tt, temp, distance_d, pres)
+            #kb_d = util.kb_from_tt_vdw_n2(tt, temp, distance_d, pres)
+            kb_d = util.kb_from_tt_rk_air(tt, temp, distance_d, pres)
+
 
             err_pct = util.err_from_tt_pct(tt, temp, distance_d)
             err_abs = err_pct * kb_d
