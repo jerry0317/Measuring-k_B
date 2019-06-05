@@ -105,6 +105,11 @@ def search_ard_serial_port():
             print("Will search again in {} seconds...".format(off_delay))
             time.sleep(off_delay)
 
+def exit_action():
+    if len(time_arr) > 0:
+        save_data()
+        save_plot(fig_now)
+
 # Controller Constants
 DELAY = 1
 
@@ -304,13 +309,11 @@ try:
     fig_now = plt.gcf()
     plt.show()
 except (KeyboardInterrupt, SystemExit):
-    save_data()
-    save_plot(fig_now)
+    exit_action()
     print("Interrupt experienced. Early Exit.")
     exit()
 except Exception as e:
     print(e)
 
 print("Exiting the program...")
-save_data()
-save_plot(fig_now)
+exit_action()
