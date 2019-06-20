@@ -68,7 +68,7 @@ for i in range(0, len(time_arr)):
     temp = temp_arr[i]
     pres = pres_arr[i]
     c_s = util.c_from_tt(tt, distance_d)
-    kb_d = util.kb_from_tt_air(tt, temp, distance_d)
+    kb_d = util.kb_from_tt_n2(tt, temp, distance_d)
 
     err_pct = util.err_from_tt_pct(tt, temp, distance_d)
     err_abs = err_pct * kb_d
@@ -80,7 +80,7 @@ for i in range(0, len(time_arr)):
 
     kb_avg_arr.append(kb_d_avg)
 
-    kb_d = util.kb_from_tt_vdw_air(tt, temp, distance_d, pres)
+    kb_d = util.kb_from_tt_vdw_n2(tt, temp, distance_d, pres)
     err_pct = util.err_from_tt_pct(tt, temp, distance_d)
     err_abs = err_pct * kb_d
 
@@ -91,7 +91,7 @@ for i in range(0, len(time_arr)):
 
     kb_avg_vdw_arr.append(kb_d_avg)
 
-    kb_d = util.kb_from_tt_rk_air(tt, temp, distance_d, pres)
+    kb_d = util.kb_from_tt_rk_n2(tt, temp, distance_d, pres)
     err_pct = util.err_from_tt_pct(tt, temp, distance_d)
     err_abs = err_pct * kb_d
 
@@ -103,10 +103,11 @@ for i in range(0, len(time_arr)):
     kb_avg_rk_arr.append(kb_d_avg)
 
 fig = plt.figure()
+fig2 = plt.figure()
 
-ax1 = fig.add_subplot(211)
+ax1 = fig.add_subplot(111)
 
-ax2 = fig.add_subplot(212)
+ax2 = fig2.add_subplot(111)
 
 line, (bottoms, tops), verts = ax1.errorbar([0], [0], yerr=0.01, capsize=0.1, fmt='ko', markersize=4, elinewidth=1,label="Measurement").lines
 

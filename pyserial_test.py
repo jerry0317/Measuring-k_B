@@ -10,6 +10,8 @@ while True:
     try:
         l_json = json.loads(l)
     except Exception as e:
+        print("Serial Reads:")
+        print(l)
         print(e)
     else:
         print(l_json)

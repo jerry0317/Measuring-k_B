@@ -16,7 +16,7 @@ import time
 K_B = 1.38064852
 
 def save_plot(fig):
-    eps_loc = "data/plt3_" + str(int(time.time())) + '.eps'
+    eps_loc = "data/plt5_" + str(int(time.time())) + '.eps'
     fig_now.savefig(eps_loc, format='eps')
     print("\nPlot saved to {}.\n".format(eps_loc))
 
@@ -30,14 +30,14 @@ data_id = data_id.split(",")
 
 data_ids = [d.strip() for d in data_id]
 
-# Desired Offset (ms)
-OFFSET = util.user_input("offset in ms", [-1,1])
-
 # List storing values
 d_arr = []
 kb_arr = []
+kb_vdw_arr = []
+kb_rk_arr = []
 
 kb_offset_arr = []
+
 kb_err_arr = []
 
 for di in data_ids:
@@ -54,7 +54,8 @@ for di in data_ids:
     temp_arr = []
     pres_arr = []
     derived_kb_arr = []
-    derived_kb_offset_arr = []
+    derived_kb_vdw_arr = []
+    derived_kb_rk_arr = []
     kb_d_avg_arr = []
 
     try:
@@ -74,20 +75,25 @@ for di in data_ids:
     for i in range(0, len(time_arr)):
         tt = tt_arr[i]
         pres = pres_arr[i]
-        tt_offset = tt + OFFSET * 10 ** -3
         temp = temp_arr[i]
-        kb_d = util.kb_from_tt_rk_air(tt, temp, distance_d, pres)
-        kb_d_offset = util.kb_from_tt_rk_air(tt_offset, temp, distance_d, pres)
+        # kb_d = util.kb_from_tt_n2(tt, temp, distance_d)
+        # kb_d_vdw = util.kb_from_tt_vdw_n2(tt, temp, distance_d, pres)
+        # kb_d_rk = util.kb_from_tt_rk_n2(tt, temp, distance_d, pres)
+        kb_d = util.kb_from_tt_air(tt, temp, distance_d)
+        kb_d_vdw = util.kb_from_tt_vdw_air(tt, temp, distance_d, pres)
+        kb_d_rk = util.kb_from_tt_rk_air(tt, temp, distance_d, pres)
         err_pct = util.err_from_tt_pct(tt, temp, distance_d)
         err_abs = err_pct * kb_d
 
         derived_kb_arr.append(kb_d)
-        derived_kb_offset_arr.append(kb_d_offset)
+        derived_kb_vdw_arr.append(kb_d_vdw)
+        derived_kb_rk_arr.append(kb_d_rk)
         kb_d_avg_arr.append(err_abs)
 
     d_arr.append(distance_d)
     kb_arr.append(np.mean(derived_kb_arr))
-    kb_offset_arr.append(np.mean(derived_kb_offset_arr))
+    kb_vdw_arr.append(np.mean(derived_kb_vdw_arr))
+    kb_rk_arr.append(np.mean(derived_kb_rk_arr))
     kb_err_arr.append(np.mean(kb_d_avg_arr))
 
 fig = plt.figure()
@@ -97,17 +103,24 @@ ax1 = fig.add_subplot(111)
 ax1.set_xlabel("Distance (m)")
 ax1.set_ylabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
 
-ax1.errorbar(d_arr, kb_arr, yerr=kb_err_arr, fmt='.', color='#1f77b4', label="Data", markersize=12)
-if OFFSET != 0:
-    # ax1.errorbar(d_arr, kb_offset_arr, yerr=kb_err_arr, fmt='c.', label="Data w./ offset {}ms".format(OFFSET), markersize=12)
-    ax1.errorbar(d_arr, kb_offset_arr, yerr=kb_err_arr, fmt='m.', label="Data w/o offset", markersize=12)
-ax1.plot([np.min(d_arr), np.max(d_arr)],[K_B, K_B], color='#ff7f0e', linestyle = 'dashed', label = r"True $k_B$")
+# kb_err_arr = 0
 
-ax1.legend(loc="upper right")
+ax1.errorbar(d_arr, kb_arr, yerr=kb_err_arr, fmt='k.', label="w./ Ideal Gas Law", markersize=12)
+ax1.errorbar(d_arr, kb_vdw_arr, yerr=kb_err_arr, fmt='b.', label="w./ VDW correction", markersize=12)
+ax1.errorbar(d_arr, kb_rk_arr, yerr=kb_err_arr, fmt='r.', label="w./ RK correction", markersize=12)
+ax1.plot([np.min(d_arr), np.max(d_arr)],[K_B, K_B], linestyle = '-.', color='#ff7f0e', label = r"True $k_B$")
+ax1.plot([np.min(d_arr), np.max(d_arr)],[np.mean(kb_arr), np.mean(kb_arr)],color='k', linestyle = 'dashed', label = "Mean (Ideal Gas)")
+ax1.plot([np.min(d_arr), np.max(d_arr)],[np.mean(kb_vdw_arr), np.mean(kb_vdw_arr)],color='b', linestyle = 'dashed', label = "Mean (VDW)")
+ax1.plot([np.min(d_arr), np.max(d_arr)],[np.mean(kb_rk_arr), np.mean(kb_rk_arr)],color='r', linestyle = 'dashed', label = "Mean (RK)")
+
+# ax1.set_ylim([1.35, 1.41])
+
+ax1.legend(loc="lower right")
 #ax1.loglog()
-print("The measurement mean value is {}.".format(np.mean(kb_arr)))
-print("The mean error is {}.".format(np.mean(kb_err_arr)))
-print("The standard error is {}.".format(std_error(kb_err_arr)))
+
+print("The measurement mean value (ideal gas) is {}.".format(np.mean(kb_arr)))
+print("The measurement mean value (VDW) is {}.".format(np.mean(kb_vdw_arr)))
+print("The measurement mean value (RK) is {}.".format(np.mean(kb_rk_arr)))
 print("The precision is {}%.".format(np.mean(kb_err_arr) * 100/np.mean(kb_arr)))
 
 try:

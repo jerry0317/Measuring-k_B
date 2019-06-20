@@ -57,13 +57,12 @@ VDW_B_AIR = 0.0367
 RK_A_AIR = 15.989 / 10
 RK_B_AIR = 0.02541
 RK_A_N2 = 15.530 / 10
-RK_B_N2 = 0.02677
+RK_A_N2 = 0.02677
 
 # Experiment Error Constants
-DIS_ERR_ABS = 0.0005
+DIS_ERR_ABS = 0.0025
 TT_ERR_ABS = 5 * 10 ** (-6)
 TEMP_ERR_ABS = 0.125
-PRES_ERR_ABS = 0.5
 
 def c_from_tt(tt, dis):
     c_sound = dis / tt

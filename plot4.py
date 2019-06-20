@@ -33,54 +33,9 @@ def err_arr_gp(x_arr, data_arr, err_arr):
         return (low_arr, up_arr, seg_arr)
 
 def save_plot(fig):
-    # eps_loc = DATA_NAME + "_plt_" + str(int(time.time())) + '.eps'
-    eps_loc = DATA_NAME + '.eps'
+    eps_loc = DATA_NAME + "_plt4_" + str(int(time.time())) + '.eps'
     fig_now.savefig(eps_loc, format='eps')
     print("\nPlot saved to {}.\n".format(eps_loc))
-
-SR04_OFFSET = 55
-
-def save_data():
-    h = ["Time", "Exp Distance", "Measured Time Diff", "Temperature", "Derived k_B", "Derived k_B Error", "Pressure", "HC-SRO4 Raw"]
-
-    try:
-        with open(csv_loc, "w+") as f:
-            dict_writer = csv.DictWriter(f, h)
-
-            dict_writer.writeheader()
-            try:
-                count = len(time_arr)
-                if len(temp_arr) != count or len(tt_arr) != count or len(derived_kb_arr) != count:
-                    raise Exception("Different list lengths.")
-            except Exception as e:
-                print(e)
-            else:
-                pass
-
-            for i in range(0, count):
-                dict_writer.writerow({
-                    h[0]: time_arr[i],
-                    h[1]: distance_d,
-                    h[2]: tt_arr[i],
-                    h[3]: temp_arr[i],
-                    h[4]: derived_kb_arr[i],
-                    h[5]: kb_err_abs_arr[i],
-                    h[6]: pres_arr[i],
-                    h[7]: tt_arr[i] - (SR04_OFFSET * 10 ** (-6))
-                })
-
-            f.close()
-    except Exception as e:
-        print(e)
-    else:
-        pass
-    pass
-
-def std_error(err_arr):
-    n = len(err_arr)
-    ste = np.sqrt(np.sum([e ** 2 for e in err_arr])/(n-1))
-    return ste
-
 
 # Boltzmann constant (10^-23)
 K_B = 1.38064852
@@ -120,27 +75,17 @@ try:
         err_pct = util.err_from_tt_pct(tt, temp, distance_d)
         err_abs = err_pct * kb_d
 
-        if len(time_arr) > 1:
-            kb_d_sigma = std_error(kb_err_abs_arr)
-            kb_d_avg_pre = np.mean(derived_kb_arr)
-        else:
-            kb_d_sigma = err_abs
-            kb_d_avg_pre = kb_d
-        kb_d_sigma_up = kb_d_avg_pre + 2 * kb_d_sigma
-        kb_d_sigma_down = kb_d_avg_pre - 2 * kb_d_sigma
+        tt_arr.append(tt)
+        time_arr.append(t)
+        temp_arr.append(temp)
+        pres_arr.append(pres)
 
-        if kb_d_sigma_down <= kb_d <= kb_d_sigma_up:
-            tt_arr.append(tt)
-            time_arr.append(t)
-            temp_arr.append(temp)
-            pres_arr.append(pres)
+        derived_kb_arr.append(kb_d)
+        kb_err_abs_arr.append(err_abs)
 
-            derived_kb_arr.append(kb_d)
-            kb_err_abs_arr.append(err_abs)
+        kb_d_avg = np.mean(derived_kb_arr)
 
-            kb_d_avg = np.mean(derived_kb_arr)
-
-            kb_avg_arr.append(kb_d_avg)
+        kb_avg_arr.append(kb_d_avg)
 
     print("The data set has been successfully loaded from CSV file.")
 except Exception as e:
@@ -148,7 +93,8 @@ except Exception as e:
 
 fig = plt.figure()
 
-ax1 = fig.add_subplot(211)
+ax1 = fig.add_subplot(221)
+ax1_2 = fig.add_subplot(222)
 
 ax2 = fig.add_subplot(223)
 ax3 = fig.add_subplot(224)
@@ -196,6 +142,15 @@ y_list.append(pres_arr)
 for lnum, st_line in enumerate(st_lines):
     st_line.set_data(x_list[lnum], y_list[lnum])
 
+# ax1_2.set_xlabel(r"Derived $k_B$ ($10^{-23} J K^{-1}$)")
+ax1_2.set_xlabel(r"HC-SR04 Raw Signal Pulse ($10^3 s^{-1}$)")
+ax1_2.set_ylabel("Number of Data Points")
+#ax1_2.hist(derived_kb_arr, bins=12)
+ax1_2.hist(1/np.array(tt_arr)*10**-3, color='g', bins=12)
+#ax1_2.axvline(kb_avg_arr[-1], color='#1f77b4', linestyle='dashed', label='Measured Mean Value')
+#ax1_2.axvline(K_B, color='#ff7f0e', linestyle='dashed', label=r'True $K_B$')
+#ax1_2.legend(loc="upper right")
+
 fig.gca().relim()
 fig.gca().autoscale_view()
 
@@ -211,10 +166,8 @@ try:
     plt.show()
 except (KeyboardInterrupt, SystemExit):
     save_plot(fig_now)
-    save_data()
     exit()
 except Exception as e:
     print(e)
 
 save_plot(fig_now)
-save_data()

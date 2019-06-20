@@ -64,7 +64,7 @@ def save_data():
                     h[4]: derived_kb_arr[i],
                     h[5]: kb_err_abs_arr[i],
                     h[6]: pres_arr[i],
-                    h[7]: time_arr[i] - SR04_OFFSET
+                    h[7]: tt_arr[i] - (SR04_OFFSET * 10 ** (-6))
                 })
 
             f.close()
@@ -168,7 +168,8 @@ def data_collection_ard():
             #kb_d = util.kb_from_tt(tt, temp, distance_d)
             #kb_d = util.kb_from_tt_vdw_n2_aprx(tt, temp, distance_d)
             #kb_d = util.kb_from_tt_vdw_n2(tt, temp, distance_d, pres)
-            kb_d = util.kb_from_tt_rk_air(tt, temp, distance_d, pres)
+            #kb_d = util.kb_from_tt_rk_air(tt, temp, distance_d, pres)
+            kb_d = util.kb_from_tt_rk_n2(tt, temp, distance_d, pres)
 
 
             err_pct = util.err_from_tt_pct(tt, temp, distance_d)
